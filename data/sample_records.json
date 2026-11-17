@@ -1,32 +1,32 @@
 [
   {
     "id": "001",
-    "rule": "",
-    "ticket_type": "",
-    "class": "",
-    "status": "",
-    "time_window": "",
-    "deduction": "",
-    "refund_percent": ""
+    "rule": "Confirmed Ticket Cancellation (&gt; 48 hrs)",
+    "ticket_type": "General / E-Ticket",
+    "class": "1A / EC",
+    "status": "Confirmed",
+    "time_window": "&gt; 48 hours before scheduled departure",
+    "deduction": "Flat ₹240 + GST",
+    "refund_percent": "100% less flat fee"
   },
   {
     "id": "002",
-    "rule": "",
-    "ticket_type": "",
-    "class": "",
-    "status": "",
-    "time_window": "",
-    "deduction": "",
-    "refund_percent": ""
+    "rule": "RAC Ticket Cancellation (Non-AC)",
+    "ticket_type": "General / E-Ticket",
+    "class": "SL / 2S",
+    "status": "RAC",
+    "time_window": "Up to 30 mins before scheduled departure",
+    "deduction": "Clerkage ₹60 per passenger + GST",
+    "refund_percent": "100% less clerkage fee"
   },
   {
     "id": "003",
-    "rule": "",
-    "ticket_type": "",
-    "class": "",
-    "status": "",
-    "time_window": "",
-    "deduction": "",
-    "refund_percent": ""
+    "rule": "AC Failure in AC Class",
+    "ticket_type": "General / E-Ticket",
+    "class": "AC (1A/2A/3A/CC)",
+    "status": "Confirmed",
+    "time_window": "File TDR with TTE certificate at destination",
+    "deduction": "Difference between AC and Non-AC fare",
+    "refund_percent": "Fare Difference Refunded"
   }
 ]
