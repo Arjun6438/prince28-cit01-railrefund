@@ -13,7 +13,7 @@
 | # | Quality | Target | How I will measure it |
 |---|---|---|---|
 | 1 | Speed: record lookups | p95 under 300 ms for GET /v1/documents | load test (Week 6) |
-| 2 | Speed: answers | p95 under 4 s for a full answer; first token under 1.5 s | traces (Week 5) |
-| 3 | Accuracy | Refund amount exact for 100% of 40 test tickets. | golden question set (Weeks 4 and 5) |
-| 4 | Cost | under Rs 0.50 per answered question | llm_calls table (Week 2) |
+| 2 | Speed: answers | p95 under 3 s for a full answer; first token under 1s | traces (Week 5) |
+| 3 | Accuracy | Refund amount exact for 100% of 60 test tickets. | golden question set (Weeks 4 and 5) |
+| 4 | Cost | under Rs 0.25 per answered question | llm_calls table (Week 2) |
 | 5 | Availability | 99% monthly uptime of the live URL | uptime monitor from Day 5 |
