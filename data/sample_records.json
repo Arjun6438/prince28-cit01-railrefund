@@ -1,0 +1,32 @@
+[
+  {
+    "id": "001",
+    "rule": "",
+    "ticket_type": "",
+    "class": "",
+    "status": "",
+    "time_window": "",
+    "deduction": "",
+    "refund_percent": ""
+  },
+  {
+    "id": "002",
+    "rule": "",
+    "ticket_type": "",
+    "class": "",
+    "status": "",
+    "time_window": "",
+    "deduction": "",
+    "refund_percent": ""
+  },
+  {
+    "id": "003",
+    "rule": "",
+    "ticket_type": "",
+    "class": "",
+    "status": "",
+    "time_window": "",
+    "deduction": "",
+    "refund_percent": ""
+  }
+]
