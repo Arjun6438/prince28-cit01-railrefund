@@ -1,0 +1,55 @@
+# Engineering notes: RailRefund
+
+## D03 · PostgreSQL
+
+### Migrations (upgrade, downgrade, upgrade)
+
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 850a73f4a2d8 -> f443f26d5e49, add gin index on metadata
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+f443f26d5e49
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade f443f26d5e49 -> 850a73f4a2d8, add gin index on metadata
+f443f26d5e49 -> 850a73f4a2d8 (head), add gin index on metadata
+<base> -> f443f26d5e49, create documents and pages
+
+### The loader is idempotent
+
+run 1:records=20 inserted=20 updated=0 unchanged=0
+
+run 2:records=20 inserted=0 updated=0 unchanged=20
+
+run 3(after editing one record):records=20 inserted=0 updated=1 unchanged=19
+
+### EXPLAIN for ?rule=VALUE
+
+-- 1) What the planner chooses on its own:
+Seq Scan on documents  (cost=0.00..2.25 rows=1 width=36) (actual time=1.334..1.335 rows=1.00 loops=1)
+  Filter: (metadata @> '{"rule": "Train Diverted & Passenger Does Not Wish to Travel"}'::jsonb)
+  Rows Removed by Filter: 19
+  Buffers: shared read=2 dirtied=2
+Planning:
+  Buffers: shared hit=108 read=8 dirtied=1
+Planning Time: 5.703 ms
+Execution Time: 1.375 ms
+
+-- 2) Seq scan switched off, to prove the index can be used:
+Bitmap Heap Scan on documents  (cost=8.54..12.55 rows=1 width=36) (actual time=0.912..0.913 rows=1.00 loops=1)
+  Recheck Cond: (metadata @> '{"rule": "Train Diverted & Passenger Does Not Wish to Travel"}'::jsonb)
+  Heap Blocks: exact=1
+  Buffers: shared hit=2 read=1
+  ->  Bitmap Index Scan on ix_documents_metadata_gin  (cost=0.00..8.54 rows=1 width=0) (actual time=0.891..0.891 rows=1.00 loops=1)
+        Index Cond: (metadata @> '{"rule": "Train Diverted & Passenger Does Not Wish to Travel"}'::jsonb)
+        Index Searches: 1
+        Buffers: shared hit=1 read=1
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.083 ms
+Execution Time: 0.951 ms
+
+**Why the planner chose a Seq Scan:** With only **20 records** in your table, the entire dataset fits inside a single memory page, making a direct table read faster than reading index structures. The PostgreSQL planner calculates that the overhead of index lookups and random disk fetches costs more than scanning all 20 rows sequentially.
+
+**When it will switch to a GIN index:** It will switch to a **GIN index** once the table grows significantly larger and queries search JSONB/array columns using containment (`@&gt;`) or full-text search (`@@`) operators.
