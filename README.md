@@ -53,3 +53,29 @@ uv run ruff check .
 * **Speed (answers):** Lowered from 4 s (1.5 s first token) to 3 s (1 s first token) because railway refund circulars are compact, allowing fast top-3 chunk retrieval and snappy responses on mobile networks.
 * **Accuracy:** Increased the golden set from 40 to 60 test tickets to cover all combinations of Indian Railways classes, quotas (CNF, RAC, WL, Tatkal), and cancellation time windows without calculation errors.
 * **Cost:** Lowered from Rs 0.50 to Rs 0.25 per question because deterministic refund math is offloaded to local code, keeping LLM context windows small and inexpensive.
+
+## Run locally in one command
+
+You need Docker Desktop running. From a fresh clone:
+
+```bash
+docker compose up --build
+```
+
+This starts Postgres (with pgvector), Redis, runs the migrations and loads the sample data once, then starts the API.
+
+- API docs: http://localhost:8000/docs
+- Liveness: http://localhost:8000/health
+- Readiness (checks the database): http://localhost:8000/ready
+
+Stop with `Ctrl+C`, then `docker compose down`. Add `-v` to also delete the database volume.
+
+## Develop and test
+
+| Task | Mac / Linux | Windows |
+|---|---|---|
+| Run the API with reload | `make dev` | `uv run poe dev` |
+| Unit tests (no network) | `make test` | `uv run poe test` |
+| Integration tests (needs `docker compose up`) | `make test-integration` | `uv run poe test-integration` |
+| Coverage report | `make cov` | `uv run poe cov` |
+| Lint and format check | `make lint` | `uv run poe lint` |
