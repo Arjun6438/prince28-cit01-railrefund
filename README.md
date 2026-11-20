@@ -1,8 +1,15 @@
 # RailRefund
 
+[![CI](https://github.com/Arjun6438/prince28-cit01-railrefund/actions/workflows/ci.yml/badge.svg)](https://github.com/Arjun6438/prince28-cit01-railrefund/actions/workflows/ci.yml)
+[![Live](https://img.shields.io/website?url=https%3A%2F%2Frailrefund.onrender.com%2Fhealth&label=live)](https://railrefund.onrender.com/docs)
+[![Uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m804746437-b4df872ca2dcebf9041bf575)](https://railrefund.onrender.com/health)
+
+**Live:** https://railrefund.onrender.com · [API docs](https://railrefund.onrender.com/docs) · [health](https://railrefund.onrender.com/health)
+
+
 Explains train ticket cancellation, refund and TDR rules and computes the exact refund for a ticket.
 
-**Status:** Day 1 foundation (FastAPI skeleton, quality gates). Live URL from Day 5.
+**Status:** Week 1 complete · live at https://railrefund.onrender.com
 
 ## Who it's for
 
