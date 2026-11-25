@@ -125,3 +125,38 @@ paste the last 4 lines of the "Smoke test the live URL" step
 
 - UptimeRobot checks /health every 5 minutes; alerts go to my email.
 - One thing that would make my live app faster on its first request: (1 line)
+
+
+## D06 · Collecting the corpus
+
+- Start target: Refund rules + IRCTC FAQs + 50 circulars
+- Collected today: 56 files, 356 pages, 91.3 MB (from DATASET.md)
+- Doors used: URL list (sources.csv, including official IRCTC and Railway Board URLs)
+
+### Licence check
+
+| Source | Licence or terms, in my words | May I show full text in answers? |
+|IRCTC|Official website information, FAQs, refund rules and terms. Reuse conditions need verification|Not confirmed. Prefer short relevant extracts with links to the original source|
+
+|Indian Railways / Railway Board | Government railway rules and circular PDFs. Individual document reuse terms need verification|Not confirmed. Prefer short relevant extracts with circular numbers and source links|
+
+### robots.txt
+- Site: IRCTC and Railway Board official websites.
+- Its robots.txt says: To verify from the actual robots.txt files.
+- Was anything blocked for my bot? No. The dataset report recorded 0 files blocked by robots.txt.
+- What did I do about it? The fetch script respected the robots.txt restrictions and did not download blocked files.
+
+### Kill and resume
+- Run 1: I pressed Ctrl+C after To verify from terminal history.
+- Run 2: downloaded=46 skipped=1 failed=3.
+- Run 3: downloaded=To verify from the final terminal output skipped=To verify.
+- Final status: All 50 targeted circular PDFs have now been downloaded successfully.
+
+### Capacity (from docs/CAPACITY.md)
+- Tokens per page, measured: To verify from CAPACITY.md
+- Full corpus: To verify: ___ M tokens, ___ chunks, embedding about Rs ___, vectors ___ MB
+- The number that surprised me most, and why:
+- The dataset contains 91.3 MB across 356 pages. I was surprised by how much storage the official PDFs require compared with the number of pages collected.
+
+### One thing that went wrong today, and how I fixed it
+Three Railway Board circular PDF links (CC 17, CC 19 and CC 21 of 2023) initially returned HTTP 404 errors. I replaced the broken URLs with corrected PDF links from the Railway Board website and reran the fetch script. All 50 targeted circular PDFs were eventually downloaded successfully.
