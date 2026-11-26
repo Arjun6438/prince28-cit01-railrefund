@@ -211,3 +211,46 @@ Important: Downloaded files and parsed files are different measurements. Don't p
 ### One thing that went wrong today, and how I fixed it
 
 Some railway circular PDFs did not contain a readable text layer. Both PyMuPDF and pypdf failed to extract useful text. I identified these files using the no_text_layer error and determined that OCR would be needed to process them.
+
+
+### D08 · LLM gateway
+
+- Primary: gemini-3.8-flash (Gemini) · fallback: openai/gpt-oss-20b (Groq)
+- First question on my laptop: first words after 35.74 s, total 36.17 s, tokens in 243 / out 529, cost Rs  0.016808
+- Same question on my live URL (second, awake request): first words after ___ s. Day 1 target: under 1.5 s
+
+### Tokens: English against Tamil
+
+| Message | tokens in |
+|---|---|
+| "Hi" (baseline: mostly my system prompt) |227|
+|"Explain in one sentence what a refund is." |235|
+|"பணத்தைத் திரும்பப் பெறுதல் என்றால் என்ன என்பதை ஒரே வாக்கியத்தில் விளக்கவும்." |249 |
+
+- The Tamil message needs about  1.06 times the tokens of the English one.
+
+### What the model does without my documents
+
+- Question 6 ("Will my waitlisted ticket get confirmed?"): did it admit it can't know? No. Its exact words:A waitlisted ticket can become confirmed if seats open up before the train departs. Whether it gets confirmed depends on the train’s availability, the class you booked, and how many seats become vacant. You can check the status on the IRCTC website or app; if it’s still waitlisted when the train leaves, you’ll need to cancel and claim a refund. If you want to be sure, you can book a confirmed ticket or wait for the next train.
+- A detail it got wrong or invented (question → what it said → what is true):
+- The off-topic question:"Who won the 2011 cricket world cup?" did it decline in one sentence?Yes,it said "This question is outside the scope of RailRefund".
+
+### Fallback and circuit breaker
+
+- With the primary broken: provider groq , fallback YES, first words after 35.24 s
+- The question at which "llm call gemini … error" stopped appearing in the log: number 4
+
+### The bill
+
+- /v1/usage today: calls 21 , errors 9 , fallbacks 12 , cost Rs 0.12
+- Average per answered question: Rs 0.12 (my Day 1 target: under Rs 0.50)
+
+### One thing that went wrong today, and how I fixed it
+
+- Today, I faced an issue while testing the /v1/chat endpoint on my laptop. The Gemini API returned an HTTP 503 error, indicating that the model was experiencing high demand.
+
+- I checked the error message and confirmed that it was a temporary provider-side issue rather than a problem with my project code.
+
+- I decided to retry the request later and continue testing the other parts of the RailRefund application.
+
+- What I learned: External AI services can sometimes become temporarily unavailable, so handling API errors and implementing retry logic are important for a reliable chatbot.
