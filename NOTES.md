@@ -160,3 +160,54 @@ paste the last 4 lines of the "Smoke test the live URL" step
 
 ### One thing that went wrong today, and how I fixed it
 Three Railway Board circular PDF links (CC 17, CC 19 and CC 21 of 2023) initially returned HTTP 404 errors. I replaced the broken URLs with corrected PDF links from the Railway Board website and reran the fetch script. All 50 targeted circular PDFs were eventually downloaded successfully.
+
+## D07 · Parser comparison
+
+<!-- parsers:start -->
+| File | Parsers (A / B) | Pages | A found | B found | Time (A / B) | Better, why |
+|---|---|---|---|---|---|---|
+| cc-24-2025-57262f14.pdf | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 0.26 s / 0.35 s | |
+| cc-11-of-2025-43f201b1.pdf | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 0.43 s / 0.28 s | |
+| management-of-mobile-catering-services-addendum- | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 0.10 s / 0.08 s | |
+| cc-10-revised-atm-policy-24eaf352-1761966284190- | PyMuPDF / pypdf | 6 | 13,541 chars, 26 headings, 0 tables | 13,394 chars, 0 headings, 0 tables | 0.79 s / 0.71 s | |
+| cc-07-of-2024-1-744ffd65.pdf | PyMuPDF / pypdf | 11 | 757 chars, 4 headings, 0 tables | 729 chars, 0 headings, 0 tables | 0.16 s / 1.07 s | |
+| cc-01-of-2025-9843c53c.pdf | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 0.05 s / 0.04 s | |
+| cc-08-2023-vinyl-wrapping-703ace15-1761966284192 | PyMuPDF / pypdf | 4 | 7,035 chars, 15 headings, 0 tables | 6,922 chars, 0 headings, 0 tables | 0.14 s / 0.24 s | |
+| cc-06-of-2025-1-2d08d3d2.pdf | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 0.03 s / 0.02 s | |
+| cc-11-of-2023-52430039-1761966284189-690092b8.pd | PyMuPDF / pypdf | - | FAILED: no_text_layer | FAILED: no_text_layer | 2.44 s / 0.03 s | |
+| cc-03-501c9c05.pdf | PyMuPDF / pypdf | - | FAILED: no_text_layer | 114 chars, 0 headings, 0 tables | 0.03 s / 0.02 s | |
+<!-- parsers:end -->
+
+
+### D07 · Parsing my corpus
+
+Here is what we can establish:
+- Files in the original collected dataset: 56
+- Total collected pages: 356
+- Files successfully downloaded: 56
+- Parsing coverage: Not yet verified
+Important: Downloaded files and parsed files are different measurements. Don't put 56 as the parsed count without checking PostgreSQL.
+
+### Failures by reason
+
+| Reason | Files | What I did |
+|no_text_layer|7 in comparison sample|Identified scanned PDFs requiring OCR|
+| Partial/poor text extraction| 1 in comparison sample| Compared extracted text between parsers|
+
+<!-- - The one I fixed: file ________ , reason ________ , fix: ________ -->
+
+### What I saw when I read my parsed pages
+
+- Heading extraction: Commercial Circular No. 15 of 2025 had extracted headings and page text.
+- Something wrong: OCR/text extraction produced errors such as ldentity, Railwavs, and Issaang AUhury.
+- Table extraction: You previously saw table content in the page 1 output, but we haven't confirmed whether it was formatted as a Markdown grid or loose text.
+
+### My parser choice
+
+- For PDFs I use PyMuPDF because it extracted 13,541 characters and 26 headings from the ATM policy document, compared with pypdf's 13,394 characters and zero headings. It also extracted 7,035 characters and 15 headings from the vinyl-wrapping circular, while pypdf extracted 6,922 characters and zero headings.
+
+- A kind of document that neither parser handles well is scanned PDFs without a selectable text layer.
+
+### One thing that went wrong today, and how I fixed it
+
+Some railway circular PDFs did not contain a readable text layer. Both PyMuPDF and pypdf failed to extract useful text. I identified these files using the no_text_layer error and determined that OCR would be needed to process them.
