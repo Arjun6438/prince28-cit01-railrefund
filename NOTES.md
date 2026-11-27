@@ -254,3 +254,85 @@ Some railway circular PDFs did not contain a readable text layer. Both PyMuPDF a
 - I decided to retry the request later and continue testing the other parts of the RailRefund application.
 
 - What I learned: External AI services can sometimes become temporarily unavailable, so handling API errors and implementing retry logic are important for a reliable chatbot.
+
+## D09 · Prompt versions compared
+
+<!-- prompts:start -->
+
+| Prompt version | Correct | Accuracy | Invalid replies | Avg tokens in |
+|---|---|---|---|---|
+| classify_v1 | 10/20 | 50% | 0 | 113 |
+| classify_v2 | 17/20 | 85% | 0 | 276 |
+| classify_v3 | 19/20 | 95% | 0 | 412 |
+| classify_v4 | 20/20 | 100% | 0 | 635 |
+
+<!-- prompts:end -->
+### Version 4 – Prompt improvements
+
+Version 3 achieved 19/20 (95%) accuracy.
+
+One question was missed: predicting whether an individual RAC ticket would become confirmed was classified as off_topic instead of personal.
+
+Improvements in version 4:
+- Clarified the difference between general RAC/waitlist rules and individual confirmation predictions.
+- Clarified that user-provided ticket details do not automatically make a question personal.
+- Strengthened the distinction between document-based refund calculations and live personal information.
+- Strengthened instructions against prompt injection.
+- Made the output format stricter.
+
+The test dataset labels were retained because the expected classifications were correct. Version 4 will be evaluated against the same test set for a fair comparison.
+
+
+### D09 · Prompts and structured output
+
+- My best router prompt: classify_v__ with 20 / 20
+
+- What I changed in v4, and what happened to the score:
+Improved the score from 95% (19/20 in v3) to **100% (20/20)**, successfully fixing the misclassification of RAC confirmation queries
+
+- The question my best version still gets wrong (line, wanted, got), and why I think so:
+**None** (v4 achieved 20/20)[1]. *(In v3, line 13 was missed: wanted* *personal* *, got* *off\_topic* *for "Will my RAC ticket become confirmed before departure?")*
+
+- A label in my test set that I changed after seeing the results (or "none"):
+**A label in my test set that I changed after seeing the results**: *None recorded in the log*
+
+- Input tokens per question: v1 **10 / 20** (50% accuracy) , best version **20 / 20** (100% accuracy) . Is the extra accuracy worth it?
+**Yes, absolutely.** Here is why:
+
+1. **Catastrophic Downstream Cascades**: The router is the entry point of your system. When `classify_v1` misclassifies 50% of incoming queries, half of your users receive broken responses (e.g., routing personal ticket status questions to policy documents or answering off-topic questions like pet names and bicycle repairs)[1].
+2. **Cost Asymmetry**: Classification prompts are typically very brief compared to full context extraction or RAG prompts. Even if `classify_v4` doubled or tripled the input tokens by adding explicit instructions or few-shot examples, the cost per query remains a fraction of a cent.
+3. **Saving Execution Cost on Misrouted Calls**: Preventing misclassifications saves you from triggering unnecessary vector searches, database connections, or expensive downstream document extractions for off-topic or misrouted requests.
+
+Overall, spending a few extra input tokens to go from **50% to 100% accuracy** is one of the highest-ROI optimizations you can make in a prompt pipeline.
+
+### My contract (DocMeta)
+
+- Fields I kept from my project card:
+`doc_kind`, `year`, `language`, `summary`, `topics`, `rule`, `ticket_type`, `class_name`, `status`, `time_window`, `deduction`, and `refund_percent`
+
+- Fields I deleted, and why they make no sense per document:
+None explicitly deleted in the current schema definition
+
+- The field I tightened, and how:
+* * Tightened list items (`Short`) to a maximum of **80 characters** and list lengths (`Values`) to a maximum of **8 items**[2][3].
+  * Tightened `summary` length strictly between **20 and 300 characters**[2].
+  * Tightened `topics` to **1–6 items** with a `@classmethod` validator (`_tidy`) that automatically lowercases topics and strips duplicate entries[2].
+
+### Extraction run
+
+- Prompt version: extract_v1 · documents: 16 ok, 2 repaired, 0 failed (of 16 parsed)
+
+- Not finished? Why, and how many are left:
+**Finished / 0 left** (all 16 documents completed)
+
+- Most common failure reason, and what I did about it:
+**Pydantic schema constraint violations** (e.g., `class_name` list exceeding 8 items, `rule` strings over 80 characters, and `summary` over 300 characters)[4]. The extraction pipeline automatically repaired validation errors and adjusted values to conform to schema rules[4].
+
+- A record that was valid but wrong (document, field, what it said, what is true):
+
+- Cost at list price: Rs 0.7982 in total, Rs 0.0499 per document
+
+### One thing that went wrong today, and how I fixed it
+
+* **What went wrong**: API connection timeouts and rate limits (`ConnectTimeout`, `circuit open`, `HTTP 429`) repeatedly interrupted script runs.
+* **How I fixed it**: **Waited a minute and re-ran the script command** (`uv run python scripts/extract_metadata.py`), which leveraged cached intermediate outputs to pick up seamlessly where it left off.
