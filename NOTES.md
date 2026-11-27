@@ -59,62 +59,68 @@ Execution Time: 0.951 ms
 
 ### The image
 
-```text
-paste the output of: docker images railrefund:dev
-paste the output of: docker run --rm railrefund:dev id
-```
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+railrefund:dev   4cd32d5117af        300MB           70MB
 
-- Size: ___ MB (target: under 400 MB)
-- First build: ___ s. After changing one line of code: ___ s.
-- Which step said CACHED, and why? (1 line, your own words)
+uid=999(app) gid=999(app) groups=999(app)
+
+- Size: 300 MB (target: under 400 MB)
+- First build: 0.1 s. After changing one line of code: 8.9 s.
+- Which step said CACHED, and why?
+The dependency installation step (uv sync --locked --no-install-project --no-dev) was CACHED because pyproject.toml and uv.lock did not change, so Docker reused that layer and only rebuilt the subsequent step that copies the application code.
 
 ### The stack
 
-```text
-paste the output of: docker compose ps -a
-paste the last line of: docker compose logs migrate   (first up, then after down + up)
-```
+railrefund-api-1       railrefund-api           "sh -c 'exec uvicorn…"   api       7 days ago   Exited (255) 16 seconds ago   0.0.0.0:8000->8000/tcp
+railrefund-db-1        pgvector/pgvector:pg17   "docker-entrypoint.s…"   db        7 days ago   Exited (255) 16 seconds ago   0.0.0.0:5433->5432/tcp
+railrefund-migrate-1   railrefund-migrate       "sh -c 'alembic upgr…"   migrate   7 days ago   Exited (0) 7 days ago
+railrefund-redis-1     redis:7-alpine           "docker-entrypoint.s…"   redis     7 days ago   Exited (255) 16 seconds ago   0.0.0.0:6379->6379/tcp
+
+records=20 inserted=20 updated=0 unchanged=0
 
 ### Breaking the database on purpose
 
-```text
-db stopped:  /health → paste
-db stopped:  /ready  → paste
-db started:  /ready  → paste
-```
+db stopped:  /health → 200 {"status":"ok","app":"railrefund","env":"dev"}
+db stopped:  /ready  → 503 {"status":"not_ready","checks":{"database":false}}
+db started:  /ready  → 200 {"status":"ready","checks":{"database":true}}
 
-Why should a load balancer stop sending traffic here but not restart the app? (2 lines)
+Why should a load balancer stop sending traffic here but not restart the app?
+When /ready returns 503 (for example, because the database is temporarily unreachable), the application process itself is healthy—restarting the container won't fix an external dependency and would only cause unnecessary downtime or cascading crash loops. Instead, the load balancer temporarily stops routing user traffic to this instance until the database recovers and /ready returns 200 again.
 
 ### Tests and coverage
 
-```text
-uv run poe test              → paste the last line
-uv run poe test-integration  → paste the last line
-coverage TOTAL, unit only    → paste
-coverage TOTAL, with integration tests → paste
-```
+uv run poe test              → 93 passed, 1 warning in 5.65s
+uv run poe test-integration  → 7 passed in 1.85s
+coverage TOTAL, unit only    →1233    167    256     25    85%
+coverage TOTAL, with integration tests → 1233    156    256     25    86%
 
-Two files or lines my coverage report says are never run, and whether they matter: (2 lines)
+- Two files or lines my coverage report says are never run, and whether they matter:
+src/railrefund/ingest/store.py (0% coverage, lines 3–71) and src/railrefund/db/repository.py (27% coverage, lines 29–66) were never executed during unit-only runs because they require a live Postgres database; they do matter because bugs in SQL inserts, deduplication, or repository queries would otherwise slip through without integration tests.
+src/railrefund/llm/extract.py (lines 149–188) and src/railrefund/api/deps.py (lines 33–38) handle live LLM retry/fallback paths and dependency wiring; extract.py error handling matters to ensure graceful failures when an API call times out, while thin framework wiring in deps.py is lower risk.
 
 
 ## D05 · CI/CD and going live
 
-- Live URL: (paste)
-- CI run for pull request 1: https://github.com/Arjun6438/prince28-cit01-railrefund/actions (paste the run link)
-- First deploy that ran by itself: (paste the CD run link)
-- Merge clicked at __:__ → "Smoke test passed" at __:__ → lead time: ___ min
+- Live URL: https://railrefund.onrender.com
+- CI run for pull request 1: https://github.com/Arjun6438/prince28-cit01-railrefund/actions/runs/44702512162
+- First deploy that ran by itself:https://github.com/Arjun6438/prince28-cit01-railrefund/actions/runs/44717557846
+- Merge clicked at 1:33 → "Smoke test passed" at 15:32 → lead time: 5 min
 
 ### Smoke test output from that CD run
 
-```text
-paste the last 4 lines of the "Smoke test the live URL" step
-```
+ok   /health -> 200, version f4a795dfc3543b6f299e522b8ab257ae80b96af0
+ok   /ready -> 200 {'status': 'ready', 'checks': {'database': True}}
+ok   /v1/documents?limit=1 -> 200
+Smoke test passed
 
 ### Rollback drill
 
-- Rolled back to sha ________ : started __:__, smoke passed __:__ (___ min)
-- Rolled forward to sha ________ : ___ min
-- During the rollback, the database stayed on the newer schema. Why is that safe here? (2 lines)
+- Rolled back to sha "Full commit SHA to deploy (rollback). Migrations are skipped." : started 1:35, smoke passed 15:32 (5 min)
+
+- Rolled forward to sha${{ github.event.inputs.sha || github.event.workflow_run.head_sha }} : 3 min
+
+- During the rollback, the database stayed on the newer schema. Why is that safe here?
+In this lab, no new database migrations were added in PR 2 (the schema remained identical between the PR 1 and PR 2 commits). Even when new schema changes are deployed, backward-compatible (additive) migrations—like adding nullable columns or new tables—allow older application code to keep running safely without crashing.
 
 ### Where my secrets live
 
@@ -124,7 +130,9 @@ paste the last 4 lines of the "Smoke test the live URL" step
 ### Monitoring
 
 - UptimeRobot checks /health every 5 minutes; alerts go to my email.
-- One thing that would make my live app faster on its first request: (1 line)
+
+- One thing that would make my live app faster on its first request:
+Upgrading the Render web service from the Free tier to a paid instance (which prevents the server from spinning down after 15 minutes of inactivity and eliminates ~50-second cold starts), or keeping an active uptime monitor pinging /health every 5 minutes so the container stays warm.
 
 
 ## D06 · Collecting the corpus
