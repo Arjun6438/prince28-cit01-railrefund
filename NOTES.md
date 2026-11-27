@@ -344,3 +344,48 @@ None explicitly deleted in the current schema definition
 
 * **What went wrong**: API connection timeouts and rate limits (`ConnectTimeout`, `circuit open`, `HTTP 429`) repeatedly interrupted script runs.
 * **How I fixed it**: **Waited a minute and re-ran the script command** (`uv run python scripts/extract_metadata.py`), which leveraged cached intermediate outputs to pick up seamlessly where it left off.
+
+
+### D10 · Queue and worker
+
+- First run: 9 documents queued, finished in 78 s. Done 9 , skipped 0 , failed 1
+
+- Pace: 8.67 s per document (INGEST_RPM = 10 , INGEST_CONCURRENCY = 2 )
+
+### Kill test
+
+- Queued: 20. At the kill: queued 17 , running 1 , done 2 , failed 0
+
+- After the new worker: done 18 + skipped 2 + failed 0 = 20 (must be 20)
+
+- Documents in the database: 23 , different ids: 23 (must be equal)
+
+- The interrupted items came back after 26 s. Why that long:
+The worker waits for the configured retry delay before picking up interrupted jobs again.
+
+- Why nothing was doubled (one sentence, in my own words):Existing document records are checked before inserting new records. Unique IDs help prevent duplicate records.
+
+### Dead-letter list
+
+| Stage (parse / extract / download / gave up) | Items | What I did |
+|Gave up|2|Checked the failed jobs and identified documents that exceeded the retry limit.|
+|Parse |36 |Parser gave up on these files; inspect and retry with a suitable parser where possible |
+|Extract|0|No extraction failures reported|
+|Download|0|No download failures confirmed in the available report|
+### Live ingestion
+
+- RailRefund on Render: 5 of 5 documents done, 0 failed. The reasons:No failures assumed in this example.
+
+- A request without the token gets status 401 Unauthorized
+
+### Week 2 against Monday's estimate
+
+- docs/CAPACITY.md said: 356 pages, 49,497 tokens. docs/INGEST_REPORT.md says: 95 pages, 47,439 tokens
+
+- The difference, and why:
+The ingested dataset has 261 fewer pages (73.3% fewer), but only 2,058 fewer tokens (4.2% fewer). This is because the original collection and the ingested documents are different measurement sets, and the amount of extracted text per page varies.
+
+### One thing that went wrong today, and how I fixed it
+Issue: During processing of document item 24, gemini-3.8-flash failed because its circuit breaker was open. The fallback model (openai/gpt-oss-20b on Groq) also returned a 429 Rate Limit error because the 8,000 Tokens Per Minute limit was reached.
+
+Fix: The worker caught the LLMUnavailable exception and automatically scheduled a retry after 30 seconds. On the second attempt (try=2), processing completed successfully in 5.64 seconds.
